@@ -153,6 +153,15 @@ protected void onCreate(Bundle savedInstanceState) {
     }
 
     home();
+}
+
+@Override
+protected void onStop() {
+    super.onStop();
+
+    Intent musicIntent = new Intent(this, EmperorMusicService.class);
+    stopService(musicIntent);
+
 
 }
     
@@ -221,7 +230,28 @@ protected void onCreate(Bundle savedInstanceState) {
         subtitle.setGravity(Gravity.CENTER);
 
         header.addView(brand);
-        header.addView(subtitle);
+header.addView(subtitle);
+
+// ABDO SAAD ANIMATION
+TextView owner = label("💀 ABDO SAAD 💀", 20, PINK);
+owner.setGravity(Gravity.CENTER);
+
+header.addView(owner);
+
+android.view.animation.Animation shake =
+        new android.view.animation.TranslateAnimation(
+                -8, 8, 0, 0
+        );
+
+shake.setDuration(90);
+shake.setRepeatMode(
+        android.view.animation.Animation.REVERSE
+);
+shake.setRepeatCount(
+        android.view.animation.Animation.INFINITE
+);
+
+owner.startAnimation(shake);
 
         LinearLayout.LayoutParams headerParams =
                 new LinearLayout.LayoutParams(-1, -2);
