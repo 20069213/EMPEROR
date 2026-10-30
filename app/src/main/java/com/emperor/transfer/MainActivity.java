@@ -144,7 +144,6 @@ protected void onCreate(Bundle savedInstanceState) {
     prefs = getSharedPreferences("emperor", MODE_PRIVATE);
     english = prefs.getBoolean("english", false);
 
-    // تشغيل الموسيقى تلقائيًا
     Intent musicIntent = new Intent(this, EmperorMusicService.class);
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -154,6 +153,7 @@ protected void onCreate(Bundle savedInstanceState) {
     }
 
     home();
+
 }
     
 
