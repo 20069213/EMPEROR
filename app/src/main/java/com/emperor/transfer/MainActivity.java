@@ -320,7 +320,7 @@ public class MainActivity extends Activity {
                  "Study Roadmap"), this::roadmap);
 
         button(tr("معلومات الجهاز",
-                 "Device Information"), this::device);
+         "Device Information"), this::scanDevice);
     }
 
     // ACADEMY
