@@ -155,7 +155,7 @@ protected void onCreate(Bundle savedInstanceState) {
 
     home();
 }
-    }
+    
 
     private String tr(String ar, String en) {
         return english ? en : ar;
