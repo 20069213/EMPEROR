@@ -191,8 +191,6 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
 
-        // HEADER
-
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.VERTICAL);
         header.setGravity(Gravity.CENTER);
@@ -224,15 +222,11 @@ public class MainActivity extends Activity {
 
         root.addView(header, headerParams);
 
-        // PAGE TITLE
-
         TextView heading = label(title, 19, PINK);
         heading.setGravity(Gravity.CENTER);
         heading.setPadding(dp(8), dp(8), dp(8), dp(10));
 
         root.addView(heading);
-
-        // CONTENT
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -247,8 +241,6 @@ public class MainActivity extends Activity {
                 scroll,
                 new LinearLayout.LayoutParams(-1, 0, 1)
         );
-
-        // BOTTOM NAVIGATION
 
         LinearLayout nav = new LinearLayout(this);
         nav.setOrientation(LinearLayout.HORIZONTAL);
@@ -384,8 +376,6 @@ public class MainActivity extends Activity {
                 CYAN
         );
 
-        // STATISTICS
-
         card(
                 "📚 " + tr("المجالات التعليمية", "Learning Domains"),
                 "17 Cybersecurity Domains",
@@ -403,8 +393,6 @@ public class MainActivity extends Activity {
                 String.valueOf(ReportManager.getReportCount(this)),
                 CYAN
         );
-
-        // MAIN SCAN CARD
 
         card(
                 "🛡️ " + tr("مركز الحماية", "Security Center"),
@@ -619,6 +607,13 @@ public class MainActivity extends Activity {
         button(
                 "🛡️ " + tr("فحص أمان الجهاز", "Device Security Scan"),
                 this::scanDevice
+        );
+
+        // NEW: OFFLINE VIRUS SCANNER
+
+        button(
+                "🦠 " + tr("فحص الفيروسات Offline", "Offline Virus Scanner"),
+                this::pickVirusFile
         );
 
         button(
@@ -933,6 +928,19 @@ public class MainActivity extends Activity {
         startActivityForResult(intent, 700);
     }
 
+    // NEW: PICK FILE FOR OFFLINE VIRUS SCAN
+
+    private void pickVirusFile() {
+
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.setType("*/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        startActivityForResult(intent, 701);
+    }
+
+    // HANDLE SELECTED FILE
+
     @Override
     protected void onActivityResult(
             int requestCode,
@@ -941,13 +949,25 @@ public class MainActivity extends Activity {
 
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == 700 &&
-                resultCode == RESULT_OK &&
-                data != null &&
-                data.getData() != null) {
+        if (resultCode != RESULT_OK ||
+                data == null ||
+                data.getData() == null) {
+            return;
+        }
+
+        Uri fileUri = data.getData();
+
+        // FILE HASH
+
+        if (requestCode == 700) {
 
             try (InputStream in =
-                    getContentResolver().openInputStream(data.getData())) {
+                    getContentResolver().openInputStream(fileUri)) {
+
+                if (in == null) {
+                    toast("Could not read file");
+                    return;
+                }
 
                 java.security.MessageDigest md =
                         java.security.MessageDigest.getInstance("SHA-256");
@@ -979,6 +999,87 @@ public class MainActivity extends Activity {
 
                 toast(tr("تعذر قراءة الملف", "Could not read file"));
             }
+
+            return;
+        }
+
+        // OFFLINE VIRUS SCAN
+
+        if (requestCode == 701) {
+
+            toast(tr(
+                    "جاري فحص الملف...",
+                    "Scanning file..."
+            ));
+
+            new Thread(() -> {
+
+                OfflineVirusScanner.ScanResult result =
+                        OfflineVirusScanner.scanFile(this, fileUri);
+
+                runOnUiThread(() -> {
+
+                    String status;
+
+                    switch (result.status) {
+
+                        case KNOWN_THREAT:
+                            status = tr(
+                                    "🚨 تهديد معروف",
+                                    "🚨 Known Threat"
+                            );
+                            break;
+
+                        case SUSPICIOUS:
+                            status = tr(
+                                    "⚠️ ملف يحتاج مراجعة",
+                                    "⚠️ Suspicious File"
+                            );
+                            break;
+
+                        case NO_INDICATORS:
+                            status = tr(
+                                    "لم تظهر مؤشرات في الفحص المحدود",
+                                    "No Indicators Found"
+                            );
+                            break;
+
+                        default:
+                            status = tr(
+                                    "❌ خطأ أثناء الفحص",
+                                    "❌ Scan Error"
+                            );
+                            break;
+                    }
+
+                    String report =
+                            "EMPEROR OFFLINE VIRUS SCAN\n\n" +
+                            "File: " + result.fileName + "\n" +
+                            "Status: " + status + "\n" +
+                            "SHA-256: " + result.sha256 + "\n\n" +
+                            "Details: " + result.details + "\n\n" +
+                            "Note: This scan cannot guarantee that a file is safe.";
+
+                    currentReport = report;
+
+                    showResult(
+                            "🛡️ EMPEROR SCANNER",
+                            "File: " + result.fileName +
+                            "\n\nResult: " + status +
+                            "\n\nDetails: " + result.details +
+                            "\n\nSHA-256:\n" + result.sha256
+                    );
+
+                    button(
+                            "💾 " + tr(
+                                    "حفظ تقرير الفحص",
+                                    "Save Scan Report"
+                            ),
+                            this::saveScanReport
+                    );
+                });
+
+            }).start();
         }
     }
 
@@ -1332,4 +1433,4 @@ public class MainActivity extends Activity {
                 PURPLE
         );
     }
-    }
+                                      }
