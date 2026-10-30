@@ -22,10 +22,18 @@ public class EmperorMusicService extends Service {
 
         createNotificationChannel();
 
-        Notification notification = new Notification.Builder(this, CHANNEL_ID)
+        Notification.Builder builder;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder = new Notification.Builder(this, CHANNEL_ID);
+        } else {
+            builder = new Notification.Builder(this);
+        }
+
+        Notification notification = builder
                 .setContentTitle("EMPEROR CYBER SECURITY")
                 .setContentText("الموسيقى تعمل في الخلفية")
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(android.R.drawable.ic_media_play)
                 .setOngoing(true)
                 .build();
 
@@ -36,11 +44,15 @@ public class EmperorMusicService extends Service {
         if (mediaPlayer != null) {
             mediaPlayer.setLooping(true);
             mediaPlayer.start();
+        } else {
+            stopSelf();
         }
     }
 
     private void createNotificationChannel() {
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "Emperor Music",
@@ -58,7 +70,9 @@ public class EmperorMusicService extends Service {
 
     @Override
     public void onDestroy() {
+
         if (mediaPlayer != null) {
+
             if (mediaPlayer.isPlaying()) {
                 mediaPlayer.stop();
             }
