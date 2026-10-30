@@ -10,9 +10,8 @@ import android.view.*;
 import android.widget.*;
 import android.text.InputType;
 
-import java.io.InputStream;
-import java.security.MessageDigest;
-import java.util.Locale;
+import java.io.*;
+import java.util.*;
 
 public class MainActivity extends Activity {
 
@@ -26,6 +25,8 @@ public class MainActivity extends Activity {
     private final int PINK = Color.rgb(255, 65, 180);
     private final int PURPLE = Color.rgb(165, 100, 255);
     private final int WHITE = Color.WHITE;
+
+    private String currentReport = "";
 
     private final String[] courses = {
         "Cybersecurity Fundamentals",
@@ -268,6 +269,19 @@ public class MainActivity extends Activity {
         body.addView(b, p);
     }
 
+    private void toast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+    }
+
+    private void showResult(String title, String message) {
+
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
     // HOME
 
     private void home() {
@@ -285,6 +299,10 @@ public class MainActivity extends Activity {
         card(tr("النقاط", "Learning Points"),
                 String.valueOf(prefs.getInt("points", 0)),
                 PURPLE);
+
+        card(tr("التقارير المحفوظة", "Saved Reports"),
+                String.valueOf(ReportManager.getReportCount(this)),
+                CYAN);
 
         button(tr("أكاديمية الأمن السيبراني",
                  "Cybersecurity Academy"), this::academy);
@@ -354,9 +372,7 @@ public class MainActivity extends Activity {
                         .apply();
             }
 
-            toast(tr("تم حفظ تقدمك",
-                    "Progress saved"));
-
+            toast(tr("تم حفظ تقدمك", "Progress saved"));
             academy();
         });
 
@@ -398,14 +414,9 @@ public class MainActivity extends Activity {
                 tr("ما وظيفة SHA-256؟",
                    "What does SHA-256 do?"), CYAN);
 
-        button("A - Hashing",
-                () -> quizAnswer(true));
-
-        button("B - Network Routing",
-                () -> quizAnswer(false));
-
-        button("C - Operating System",
-                () -> quizAnswer(false));
+        button("A - Hashing", () -> quizAnswer(true));
+        button("B - Network Routing", () -> quizAnswer(false));
+        button("C - Operating System", () -> quizAnswer(false));
     }
 
     private void quizAnswer(boolean correct) {
@@ -423,10 +434,8 @@ public class MainActivity extends Activity {
                         : tr("إجابة خاطئة", "Incorrect"))
                 .setMessage(correct
                         ? "SHA-256 is a cryptographic hash function."
-                        : tr("راجع درس التشفير.",
-                             "Review Cryptography."))
-                .setPositiveButton("OK",
-                        (d, w) -> quiz())
+                        : tr("راجع درس التشفير.", "Review Cryptography."))
+                .setPositiveButton("OK", (d, w) -> quiz())
                 .show();
     }
 
@@ -434,178 +443,260 @@ public class MainActivity extends Activity {
 
     private void tools() {
 
-        page(tr("الأدوات الدفاعية",
-                "Defensive Tools"));
+        page(tr("الأدوات الدفاعية", "Defensive Tools"));
 
         card(tr("تنبيه أمني", "Security Notice"),
-                tr("هذه الأدوات تعليمية ومحلية وليست مضاد فيروسات شاملًا.",
-                   "These tools are educational and local, not a full antivirus."),
+                tr("الأدوات محلية وتعليمية وليست مضاد فيروسات شاملًا.",
+                   "Local educational tools, not a full antivirus."),
                 PINK);
 
-        button(tr("معلومات الجهاز",
-                 "Device Information"), this::device);
+        button(tr("فحص أمان الجهاز", "Device Security Scan"),
+                this::scanDevice);
 
-        button(tr("معلومات الشبكة",
-                 "Network Information"), this::network);
+        button(tr("فحص معلومات الشبكة", "Network Information"),
+                this::scanNetwork);
 
-        button(tr("حساب SHA-256",
-                 "SHA-256 Calculator"), this::hashText);
+        button(tr("تشفير وفك تشفير النصوص", "AES Encryption"),
+                this::encryptionMenu);
 
-        button(tr("تحليل بصمة ملف",
-                 "File Hash Analysis"), this::pickFile);
+        button(tr("حساب SHA-256 للنص", "Text SHA-256"),
+                this::hashText);
 
-        button(tr("تقييم كلمة مرور تجريبية",
-                 "Sample Password Guidance"), this::password);
+        button(tr("حساب SHA-256 للملف", "File SHA-256"),
+                this::pickFile);
 
-        button(tr("حماية Android",
-                 "Android Security"), this::androidSecurity);
+        button(tr("تقييم قوة كلمة المرور", "Password Analyzer"),
+                this::password);
+
+        button(tr("حفظ تقرير الفحص", "Save Scan Report"),
+                this::saveScanReport);
+
+        button(tr("عرض التقارير المحفوظة", "Saved Reports"),
+                this::showReports);
     }
 
-    // DEVICE
+    // DEVICE SCAN
 
-    private void device() {
+    private void scanDevice() {
 
-        page(tr("معلومات الجهاز",
-                "Device Information"));
+        page(tr("فحص أمان الجهاز", "Device Security Scan"));
 
-        card("Manufacturer",
-                Build.MANUFACTURER, CYAN);
+        try {
 
-        card("Model",
-                Build.MODEL, PINK);
+            java.util.List<SecurityScanner.ScanResult> results =
+                    SecurityScanner.scanDevice(this);
 
-        card("Android",
-                Build.VERSION.RELEASE, PURPLE);
+            StringBuilder report = new StringBuilder();
 
-        card("API",
-                String.valueOf(Build.VERSION.SDK_INT), CYAN);
+            int warnings = 0;
 
-        Intent battery = registerReceiver(
-                null,
-                new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            for (SecurityScanner.ScanResult result : results) {
 
-        int level = battery == null ? 0 :
-                battery.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
+                card(result.title,
+                        result.status + "\n" + result.details,
+                        result.warning ? PINK : CYAN);
 
-        int scale = battery == null ? 100 :
-                battery.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+                report.append(result.title)
+                        .append(": ")
+                        .append(result.status)
+                        .append("\n")
+                        .append(result.details)
+                        .append("\n\n");
 
-        card(tr("البطارية", "Battery"),
-                (scale > 0 ? level * 100 / scale : 0) + "%",
-                PINK);
-
-        long free = android.os.Environment
-                .getDataDirectory().getFreeSpace();
-
-        card(tr("المساحة الحرة", "Free Storage"),
-                String.format(Locale.US,
-                        "%.2f GB",
-                        free / 1073741824.0),
-                PURPLE);
-    }
-
-    // NETWORK
-
-    private void network() {
-
-        page(tr("معلومات الشبكة",
-                "Network Information"));
-
-        ConnectivityManager cm =
-                (ConnectivityManager)
-                        getSystemService(CONNECTIVITY_SERVICE);
-
-        boolean connected = false;
-
-        String type = "Unknown";
-
-        if (Build.VERSION.SDK_INT >= 23 && cm != null) {
-
-            Network n = cm.getActiveNetwork();
-
-            NetworkCapabilities c =
-                    cm.getNetworkCapabilities(n);
-
-            if (c != null) {
-
-                connected = c.hasCapability(
-                        NetworkCapabilities.NET_CAPABILITY_INTERNET);
-
-                if (c.hasTransport(
-                        NetworkCapabilities.TRANSPORT_WIFI)) {
-
-                    type = "Wi-Fi";
-
-                } else if (c.hasTransport(
-                        NetworkCapabilities.TRANSPORT_CELLULAR)) {
-
-                    type = "Mobile Data";
-                }
+                if (result.warning) warnings++;
             }
-        }
 
-        card(tr("حالة الاتصال", "Connection"),
-                connected ? "Connected" : "Disconnected",
+            currentReport = report.toString();
+
+            card(tr("النتيجة", "Result"),
+                    tr("عدد التنبيهات: ", "Warnings: ") + warnings,
+                    warnings > 0 ? PINK : CYAN);
+
+            button(tr("حفظ تقرير الفحص", "Save Scan Report"),
+                    this::saveScanReport);
+
+        } catch (Exception e) {
+            toast("Scan Error: " + e.getMessage());
+        }
+    }
+
+    // NETWORK SCAN
+
+    private void scanNetwork() {
+
+        page(tr("معلومات الشبكة", "Network Information"));
+
+        try {
+
+            java.util.List<NetworkScanner.NetworkResult> results =
+                    NetworkScanner.scan(this);
+
+            StringBuilder report = new StringBuilder();
+
+            for (NetworkScanner.NetworkResult result : results) {
+
+                card(result.title, result.value, CYAN);
+
+                report.append(result.title)
+                        .append(": ")
+                        .append(result.value)
+                        .append("\n");
+            }
+
+            currentReport = report.toString();
+
+            button(tr("حفظ تقرير الشبكة", "Save Network Report"),
+                    this::saveScanReport);
+
+        } catch (Exception e) {
+            toast("Network Error: " + e.getMessage());
+        }
+    }
+
+    // ENCRYPTION MENU
+
+    private void encryptionMenu() {
+
+        page(tr("التشفير AES-256", "AES-256 Encryption"));
+
+        card(tr("التشفير المحلي", "Local Encryption"),
+                tr("التشفير يتم على جهازك باستخدام AES-GCM.",
+                   "Encryption runs locally using AES-GCM."),
                 CYAN);
 
-        card(tr("نوع الاتصال", "Connection Type"),
-                type, PINK);
+        button(tr("إنشاء مفتاح جديد", "Generate New Key"),
+                this::generateEncryptionKey);
 
-        card(tr("ملاحظة", "Notice"),
-                tr("لا يتم فحص أجهزة الشبكة الأخرى.",
-                   "No other network devices are scanned."),
-                PURPLE);
+        button(tr("تشفير نص", "Encrypt Text"),
+                this::encryptText);
+
+        button(tr("فك تشفير نص", "Decrypt Text"),
+                this::decryptText);
     }
 
-    // CRYPTO
+    private void generateEncryptionKey() {
+
+        try {
+
+            String key = EncryptionManager.generateKey();
+
+            prefs.edit()
+                    .putString("aes_key", key)
+                    .apply();
+
+            EditText output = new EditText(this);
+            output.setText(key);
+            output.setTextIsSelectable(true);
+
+            new AlertDialog.Builder(this)
+                    .setTitle(tr("مفتاح AES الجديد", "New AES Key"))
+                    .setMessage(tr(
+                            "انسخ المفتاح واحفظه في مكان آمن. لا تشاركه.",
+                            "Copy and store this key safely. Do not share it."
+                    ))
+                    .setView(output)
+                    .setPositiveButton("OK", null)
+                    .show();
+
+        } catch (Exception e) {
+            toast("Key Error: " + e.getMessage());
+        }
+    }
+
+    private void encryptText() {
+
+        String key = prefs.getString("aes_key", null);
+
+        if (key == null) {
+            toast(tr("أنشئ مفتاحًا أولًا", "Generate a key first"));
+            return;
+        }
+
+        EditText input = new EditText(this);
+        input.setHint(tr("اكتب النص", "Enter text"));
+
+        new AlertDialog.Builder(this)
+                .setTitle(tr("تشفير نص", "Encrypt Text"))
+                .setView(input)
+                .setPositiveButton(tr("تشفير", "Encrypt"),
+                        (d, w) -> {
+
+                    try {
+
+                        String encrypted = EncryptionManager.encrypt(
+                                input.getText().toString(), key);
+
+                        showResult("Encrypted Text", encrypted);
+
+                    } catch (Exception e) {
+                        toast("Encryption Error");
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void decryptText() {
+
+        String key = prefs.getString("aes_key", null);
+
+        if (key == null) {
+            toast(tr("أنشئ مفتاحًا أولًا", "Generate a key first"));
+            return;
+        }
+
+        EditText input = new EditText(this);
+        input.setHint(tr("الصق النص المشفر", "Paste encrypted text"));
+
+        new AlertDialog.Builder(this)
+                .setTitle(tr("فك التشفير", "Decrypt Text"))
+                .setView(input)
+                .setPositiveButton(tr("فك التشفير", "Decrypt"),
+                        (d, w) -> {
+
+                    try {
+
+                        String decrypted = EncryptionManager.decrypt(
+                                input.getText().toString(), key);
+
+                        showResult("Decrypted Text", decrypted);
+
+                    } catch (Exception e) {
+                        toast(tr("فشل فك التشفير أو المفتاح غير صحيح",
+                                "Decryption failed or incorrect key"));
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // TEXT HASH
 
     private void hashText() {
 
         EditText input = new EditText(this);
 
-        input.setHint(tr("اكتب نصًا تجريبيًا",
-                        "Enter sample text"));
+        input.setHint(tr("اكتب نصًا تجريبيًا", "Enter sample text"));
 
         new AlertDialog.Builder(this)
                 .setTitle("SHA-256")
                 .setView(input)
                 .setPositiveButton(tr("احسب", "Calculate"),
-                        (d, w) -> showHash(
-                                input.getText().toString().getBytes(
-                                        java.nio.charset.StandardCharsets.UTF_8)))
+                        (d, w) -> {
+
+                    try {
+
+                        String result = HashManager.hashText(
+                                input.getText().toString());
+
+                        showResult("SHA-256", result);
+
+                    } catch (Exception e) {
+                        toast("Hash Error");
+                    }
+                })
                 .setNegativeButton(tr("إلغاء", "Cancel"), null)
                 .show();
-    }
-
-    private String sha256(byte[] data) throws Exception {
-
-        byte[] hash = MessageDigest
-                .getInstance("SHA-256")
-                .digest(data);
-
-        StringBuilder out = new StringBuilder();
-
-        for (byte b : hash) {
-            out.append(String.format(Locale.US,
-                    "%02x", b & 255));
-        }
-
-        return out.toString();
-    }
-
-    private void showHash(byte[] data) {
-
-        try {
-
-            new AlertDialog.Builder(this)
-                    .setTitle("SHA-256")
-                    .setMessage(sha256(data))
-                    .setPositiveButton("OK", null)
-                    .show();
-
-        } catch (Exception e) {
-            toast("Hash Error");
-        }
     }
 
     // FILE HASH
@@ -613,9 +704,7 @@ public class MainActivity extends Activity {
     private void pickFile() {
 
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-
         intent.setType("*/*");
-
         intent.addCategory(Intent.CATEGORY_OPENABLE);
 
         startActivityForResult(intent, 700);
@@ -631,14 +720,14 @@ public class MainActivity extends Activity {
 
         if (requestCode == 700 &&
                 resultCode == RESULT_OK &&
-                data != null) {
+                data != null &&
+                data.getData() != null) {
 
             try (InputStream in =
-                         getContentResolver()
-                                 .openInputStream(data.getData())) {
+                    getContentResolver().openInputStream(data.getData())) {
 
-                MessageDigest md =
-                        MessageDigest.getInstance("SHA-256");
+                java.security.MessageDigest md =
+                        java.security.MessageDigest.getInstance("SHA-256");
 
                 byte[] buffer = new byte[8192];
 
@@ -651,111 +740,157 @@ public class MainActivity extends Activity {
                 StringBuilder result = new StringBuilder();
 
                 for (byte b : md.digest()) {
-                    result.append(String.format(
-                            Locale.US, "%02x", b & 255));
+                    result.append(String.format(Locale.US,
+                            "%02x", b & 255));
                 }
 
-                new AlertDialog.Builder(this)
-                        .setTitle("File SHA-256")
-                        .setMessage(result.toString())
-                        .setPositiveButton("OK", null)
-                        .show();
+                currentReport = "File SHA-256:\n" + result;
+
+                showResult("File SHA-256", result.toString());
 
             } catch (Exception e) {
-
-                toast(tr("تعذر قراءة الملف",
-                        "Could not read file"));
+                toast(tr("تعذر قراءة الملف", "Could not read file"));
             }
         }
     }
 
-    // PASSWORD GUIDANCE
+    // PASSWORD ANALYZER
 
     private void password() {
 
-        page(tr("تقييم كلمة المرور",
-                "Password Guidance"));
+        page(tr("تحليل قوة كلمة المرور", "Password Analyzer"));
 
         card(tr("تنبيه الخصوصية", "Privacy Notice"),
-                tr("استخدم كلمة مرور تجريبية فقط ولا تدخل كلمة مرورك الحقيقية.",
+                tr("استخدم كلمة تجريبية فقط، ولا تدخل كلمة مرورك الحقيقية.",
                    "Use a sample password only. Never enter your real password."),
                 PINK);
 
         EditText input = new EditText(this);
-
         input.setSingleLine(true);
 
         input.setInputType(
                 InputType.TYPE_CLASS_TEXT |
                 InputType.TYPE_TEXT_VARIATION_PASSWORD);
 
-        input.setHint(tr("كلمة مرور تجريبية",
-                        "Sample password"));
+        input.setHint(tr("كلمة مرور تجريبية", "Sample password"));
 
         body.addView(input);
 
-        button(tr("تقييم القوة", "Evaluate Strength"), () -> {
+        button(tr("تحليل القوة", "Analyze Strength"), () -> {
 
-            String p = input.getText().toString();
+            PasswordAnalyzer.Result result =
+                    PasswordAnalyzer.analyze(
+                            input.getText().toString());
 
-            int score = 0;
+            card(tr("النتيجة", "Result"),
+                    result.level, CYAN);
 
-            if (p.length() >= 14) score++;
+            card(tr("النقاط", "Score"),
+                    result.score + " / 100", PINK);
 
-            if (p.matches(".*[a-z].*")) score++;
+            card(tr("النصيحة", "Advice"),
+                    result.advice, PURPLE);
 
-            if (p.matches(".*[A-Z].*")) score++;
+            currentReport =
+                    "Password Analysis\n" +
+                    "Level: " + result.level + "\n" +
+                    "Score: " + result.score + "/100\n" +
+                    "Advice: " + result.advice;
+        });
+    }
 
-            if (p.matches(".*[0-9].*")) score++;
+    // REPORTS
 
-            if (p.matches(".*[^A-Za-z0-9].*")) score++;
+    private void saveScanReport() {
 
-            String result;
+        if (currentReport == null || currentReport.trim().isEmpty()) {
+            toast(tr("لا توجد نتائج للحفظ", "No results to save"));
+            return;
+        }
 
-            if (score <= 2) {
+        try {
 
-                result = tr("ضعيفة. استخدم عبارة مرور طويلة وفريدة.",
-                        "Weak. Use a long unique passphrase.");
+            File file = ReportManager.saveReport(
+                    this,
+                    "Security Scan",
+                    currentReport
+            );
 
-            } else if (score <= 4) {
+            toast(tr("تم حفظ التقرير: ", "Report saved: ")
+                    + file.getName());
 
-                result = tr("متوسطة. اهتم بالطول وعدم إعادة الاستخدام.",
-                        "Moderate. Focus on length and uniqueness.");
+        } catch (Exception e) {
+            toast("Report Error: " + e.getMessage());
+        }
+    }
 
-            } else {
+    private void showReports() {
 
-                result = tr("تنوع جيد، لكن لا تعتمد على هذا التقييم وحده.",
-                        "Good variety, but do not rely on this estimate alone.");
+        page(tr("التقارير المحفوظة", "Saved Reports"));
+
+        File directory = ReportManager.getReportsDirectory(this);
+
+        File[] files = directory.listFiles();
+
+        if (files == null || files.length == 0) {
+            card(tr("التقارير", "Reports"),
+                    tr("لا توجد تقارير محفوظة.", "No saved reports."),
+                    PINK);
+            return;
+        }
+
+        for (File file : files) {
+
+            button(file.getName(), () -> openReport(file));
+        }
+    }
+
+    private void openReport(File file) {
+
+        try {
+
+            StringBuilder content = new StringBuilder();
+
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(
+                            new FileInputStream(file),
+                            "UTF-8"));
+
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                content.append(line).append("\n");
             }
 
-            new AlertDialog.Builder(this)
-                    .setTitle(tr("النتيجة", "Result"))
-                    .setMessage(result)
-                    .setPositiveButton("OK", null)
-                    .show();
-        });
+            reader.close();
+
+            showResult(file.getName(), content.toString());
+
+        } catch (Exception e) {
+            toast("Could not open report");
+        }
     }
 
     // ANDROID SECURITY
 
     private void androidSecurity() {
 
-        page(tr("حماية Android",
-                "Android Security"));
+        page(tr("حماية Android", "Android Security"));
 
-        String[] tips = {
-            "حدّث النظام والتطبيقات باستمرار.",
-            "استخدم قفل شاشة قويًا.",
-            "راجع صلاحيات التطبيقات.",
-            "لا تثبت ملفات APK مجهولة.",
-            "فعّل المصادقة الثنائية.",
-            "احتفظ بنسخة احتياطية.",
-            "لا تشارك رموز التحقق.",
-            "راجع صلاحيات الموقع والكاميرا والميكروفون."
-        };
+        try {
 
-        for (String tip : tips) {
-            card("✓", tip, CYAN);
+            java.util.List<SecurityScanner.ScanResult> results =
+                    SecurityScanner.scanDevice(this);
+
+            for (SecurityScanner.ScanResult result : results) {
+
+                card(result.title,
+                        result.status + "\n" + result.details,
+                        result.warning ? PINK : CYAN);
+            }
+
+        } catch (Exception e) {
+            toast("Security Error");
         }
     }
 
@@ -763,52 +898,44 @@ public class MainActivity extends Activity {
 
     private void labs() {
 
-        page(tr("المختبر الأمني",
-                "Security Training Labs"));
+        page(tr("المختبر الأمني", "Security Training Labs"));
 
-        card(tr("بيئة تدريب آمنة",
-                "Safe Training Environment"),
-                tr("التحديات تعليمية. اختبر فقط الأنظمة التي تملكها أو لديك تصريح لاختبارها.",
-                   "Challenges are educational. Test only systems you own or are authorized to assess."),
+        card(tr("بيئة تدريب آمنة", "Safe Training Environment"),
+                tr("اختبر فقط الأنظمة التي تملكها أو لديك تصريح لاختبارها.",
+                   "Test only systems you own or are authorized to assess."),
                 CYAN);
 
-        button(tr("تحدي التصيد الإلكتروني",
-                 "Phishing Challenge"), () -> challenge(
-                "Phishing",
-                tr("لا تشارك رمز OTP مع أي شخص. افتح الموقع الرسمي بنفسك.",
-                   "Never share an OTP. Open the official website yourself.")));
+        button(tr("تحدي التصيد الإلكتروني", "Phishing Challenge"),
+                () -> challenge(
+                        "Phishing",
+                        tr("لا تشارك رمز OTP مع أي شخص.",
+                           "Never share an OTP with anyone.")));
 
-        button(tr("تحدي سلامة الملفات",
-                 "File Integrity Challenge"), () -> challenge(
-                "File Integrity",
-                tr("قارن بصمة الملف بمصدر موثوق قبل تشغيله.",
-                   "Compare the file hash against a trusted source before running it.")));
+        button(tr("تحدي سلامة الملفات", "File Integrity Challenge"),
+                () -> challenge(
+                        "File Integrity",
+                        tr("قارن بصمة الملف بمصدر موثوق قبل تشغيله.",
+                           "Compare the file hash with a trusted source.")));
 
-        button(tr("تحدي الصلاحيات",
-                 "Permissions Challenge"), () -> challenge(
-                "Permissions",
-                tr("ارفض الصلاحيات التي لا يحتاجها التطبيق.",
-                   "Deny permissions that an app does not need.")));
+        button(tr("تحدي الصلاحيات", "Permissions Challenge"),
+                () -> challenge(
+                        "Permissions",
+                        tr("ارفض الصلاحيات التي لا يحتاجها التطبيق.",
+                           "Deny permissions that an app does not need.")));
 
-        button(tr("اختبار المعلومات",
-                 "Knowledge Quiz"), this::quiz);
+        button(tr("اختبار المعلومات", "Knowledge Quiz"), this::quiz);
     }
 
     private void challenge(String title, String answer) {
 
-        new AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage(answer)
-                .setPositiveButton("OK", null)
-                .show();
+        showResult(title, answer);
     }
 
     // GLOSSARY
 
     private void glossary() {
 
-        page(tr("قاموس الأمن السيبراني",
-                "Cybersecurity Glossary"));
+        page(tr("قاموس الأمن السيبراني", "Cybersecurity Glossary"));
 
         for (String term : glossary) {
             card("CYBER TERM", term, CYAN);
@@ -819,8 +946,7 @@ public class MainActivity extends Activity {
 
     private void roadmap() {
 
-        page(tr("خطة الدراسة",
-                "Study Roadmap"));
+        page(tr("خطة الدراسة", "Study Roadmap"));
 
         String[] phases = {
             "1 - Computer Fundamentals",
@@ -836,8 +962,8 @@ public class MainActivity extends Activity {
         };
 
         for (String phase : phases) {
-            card(tr("مرحلة تعليمية",
-                    "Learning Phase"), phase, PURPLE);
+            card(tr("مرحلة تعليمية", "Learning Phase"),
+                    phase, PURPLE);
         }
     }
 
@@ -845,33 +971,31 @@ public class MainActivity extends Activity {
 
     private void more() {
 
-        page(tr("المزيد",
-                "More"));
+        page(tr("المزيد", "More"));
 
-        button(tr("قاموس المصطلحات",
-                 "Glossary"), this::glossary);
+        button(tr("قاموس المصطلحات", "Glossary"), this::glossary);
 
-        button(tr("خطة الدراسة",
-                 "Study Roadmap"), this::roadmap);
+        button(tr("خطة الدراسة", "Study Roadmap"), this::roadmap);
 
-        button(tr("الإعدادات",
-                 "Settings"), this::settings);
+        button(tr("حماية Android", "Android Security"),
+                this::androidSecurity);
+
+        button(tr("التقارير", "Reports"), this::showReports);
+
+        button(tr("الإعدادات", "Settings"), this::settings);
     }
 
     // SETTINGS
 
     private void settings() {
 
-        page(tr("الإعدادات",
-                "Settings"));
+        page(tr("الإعدادات", "Settings"));
 
-        card(tr("اللغة الحالية",
-                "Current Language"),
+        card(tr("اللغة الحالية", "Current Language"),
                 english ? "English" : "العربية",
                 CYAN);
 
-        button(tr("تغيير اللغة",
-                 "Change Language"), () -> {
+        button(tr("تغيير اللغة", "Change Language"), () -> {
 
             english = !english;
 
@@ -882,20 +1006,12 @@ public class MainActivity extends Activity {
             home();
         });
 
-        card(tr("الإصدار",
-                "Version"), "4.0", PINK);
+        card(tr("الإصدار", "Version"),
+                "4.0 OFFLINE", PINK);
 
-        card(tr("الخصوصية",
-                "Privacy"),
-                tr("لا توجد مراقبة خلفية أو رفع بيانات في هذا الإصدار.",
-                   "No background monitoring or data uploads in this release."),
+        card(tr("الخصوصية", "Privacy"),
+                tr("الأدوات تعمل محليًا ولا ترفع بياناتك إلى سيرفر خارجي.",
+                   "Tools work locally and do not upload data to an external server."),
                 PURPLE);
     }
-
-    private void toast(String message) {
-
-        Toast.makeText(this,
-                message,
-                Toast.LENGTH_LONG).show();
     }
-                    }
