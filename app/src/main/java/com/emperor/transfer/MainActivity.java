@@ -10,7 +10,7 @@ import android.widget.TextView;
 import android.graphics.Color;
 import android.view.Gravity;
 
-import java.util.ArrayList;
+import java.io.File;
 
 public class MainActivity extends Activity {
 
@@ -20,10 +20,13 @@ public class MainActivity extends Activity {
     private TextView filesText;
 
     private Uri selectedFolder;
+    private TcpServer tcpServer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        tcpServer = new TcpServer();
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -37,29 +40,42 @@ public class MainActivity extends Activity {
         title.setGravity(Gravity.CENTER);
 
         statusText = new TextView(this);
-        statusText.setText("اختر مجلد الملفات للبدء");
+        statusText.setText("السيرفر متوقف");
         statusText.setTextColor(Color.WHITE);
         statusText.setTextSize(16);
 
         Button chooseButton = new Button(this);
-        chooseButton.setText("اختيار مجلد");
+        chooseButton.setText("اختيار مجلد الملفات");
 
         Button refreshButton = new Button(this);
         refreshButton.setText("عرض الملفات");
 
+        Button startButton = new Button(this);
+        startButton.setText("تشغيل الاستقبال");
+
+        Button stopButton = new Button(this);
+        stopButton.setText("إيقاف الاستقبال");
+
         filesText = new TextView(this);
         filesText.setTextColor(Color.WHITE);
         filesText.setTextSize(15);
-        filesText.setPadding(5, 20, 5, 20);
 
         chooseButton.setOnClickListener(v -> openFolderPicker());
 
         refreshButton.setOnClickListener(v -> showFiles());
 
+        startButton.setOnClickListener(v -> startServer());
+
+        stopButton.setOnClickListener(v -> {
+            tcpServer.stop();
+        });
+
         layout.addView(title);
         layout.addView(statusText);
         layout.addView(chooseButton);
         layout.addView(refreshButton);
+        layout.addView(startButton);
+        layout.addView(stopButton);
         layout.addView(filesText);
 
         setContentView(layout);
@@ -70,12 +86,13 @@ public class MainActivity extends Activity {
 
         if (saved != null) {
             selectedFolder = Uri.parse(saved);
-            statusText.setText("يوجد مجلد محفوظ");
         }
     }
 
     private void openFolderPicker() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        Intent intent = new Intent(
+                Intent.ACTION_OPEN_DOCUMENT_TREE
+        );
 
         intent.addFlags(
                 Intent.FLAG_GRANT_READ_URI_PERMISSION |
@@ -101,7 +118,6 @@ public class MainActivity extends Activity {
             selectedFolder = data.getData();
 
             if (selectedFolder != null) {
-
                 getContentResolver().takePersistableUriPermission(
                         selectedFolder,
                         Intent.FLAG_GRANT_READ_URI_PERMISSION |
@@ -113,21 +129,18 @@ public class MainActivity extends Activity {
                         .putString("folder_uri", selectedFolder.toString())
                         .apply();
 
-                statusText.setText("تم اختيار المجلد بنجاح");
-
-                showFiles();
+                statusText.setText("تم اختيار المجلد");
             }
         }
     }
 
     private void showFiles() {
-
         if (selectedFolder == null) {
-            statusText.setText("اختار مجلد الأول");
+            statusText.setText("اختار مجلد الملفات أولاً");
             return;
         }
 
-        ArrayList<String> files =
+        java.util.ArrayList<String> files =
                 FolderManager.getFiles(this, selectedFolder);
 
         StringBuilder result = new StringBuilder();
@@ -136,12 +149,46 @@ public class MainActivity extends Activity {
                 .append(files.size())
                 .append("\n\n");
 
-        for (String file : files) {
+        for (String name : files) {
             result.append("• ")
-                    .append(file)
+                    .append(name)
                     .append("\n");
         }
 
         filesText.setText(result.toString());
+    }
+
+    private void startServer() {
+
+        if (tcpServer.isRunning()) {
+            statusText.setText("السيرفر يعمل بالفعل");
+            return;
+        }
+
+        File receivedFolder = getExternalFilesDir(
+                "received_files"
+        );
+
+        if (receivedFolder == null) {
+            statusText.setText("تعذر تجهيز مجلد الاستقبال");
+            return;
+        }
+
+        tcpServer.start(
+                receivedFolder,
+                TcpTransfer.TOKEN,
+                message -> runOnUiThread(
+                        () -> statusText.setText(message)
+                )
+        );
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (tcpServer != null) {
+            tcpServer.stop();
+        }
+
+        super.onDestroy();
     }
 }
