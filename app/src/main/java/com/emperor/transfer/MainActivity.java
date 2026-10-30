@@ -25,6 +25,7 @@ public class MainActivity extends Activity {
     private final int PINK = Color.rgb(255, 65, 180);
     private final int PURPLE = Color.rgb(165, 100, 255);
     private final int WHITE = Color.WHITE;
+    private final int MUTED = Color.rgb(160, 175, 195);
 
     private String currentReport = "";
 
@@ -158,8 +159,17 @@ public class MainActivity extends Activity {
     private GradientDrawable shape(int color, int stroke) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(color);
-        d.setCornerRadius(dp(17));
+        d.setCornerRadius(dp(20));
         d.setStroke(dp(1), stroke);
+        return d;
+    }
+
+    private GradientDrawable gradient(int first, int second) {
+        GradientDrawable d = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{first, second}
+        );
+        d.setCornerRadius(dp(20));
         return d;
     }
 
@@ -173,83 +183,144 @@ public class MainActivity extends Activity {
         return t;
     }
 
+    // MAIN PAGE DESIGN
+
     private void page(String title) {
 
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(BG);
 
-        TextView brand = label("👑 EMPEROR", 25, CYAN);
-        brand.setGravity(Gravity.CENTER);
-        root.addView(brand);
+        // HEADER
 
-        TextView heading = label(title, 15, PINK);
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setGravity(Gravity.CENTER);
+        header.setPadding(dp(10), dp(12), dp(10), dp(12));
+        header.setBackground(gradient(
+                Color.rgb(10, 28, 48),
+                Color.rgb(32, 15, 55)
+        ));
+
+        TextView brand = label("👑 EMPEROR", 27, CYAN);
+        brand.setGravity(Gravity.CENTER);
+
+        TextView subtitle = label(
+                "CYBER SECURITY SYSTEM",
+                11,
+                PINK
+        );
+        subtitle.setGravity(Gravity.CENTER);
+
+        header.addView(brand);
+        header.addView(subtitle);
+
+        LinearLayout.LayoutParams headerParams =
+                new LinearLayout.LayoutParams(-1, -2);
+
+        headerParams.setMargins(
+                dp(12), dp(8), dp(12), dp(5)
+        );
+
+        root.addView(header, headerParams);
+
+        // PAGE TITLE
+
+        TextView heading = label(title, 19, PINK);
         heading.setGravity(Gravity.CENTER);
+        heading.setPadding(dp(8), dp(8), dp(8), dp(10));
+
         root.addView(heading);
 
+        // CONTENT
+
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
 
         body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
-        body.setPadding(dp(14), dp(10), dp(14), dp(18));
+        body.setPadding(dp(14), dp(8), dp(14), dp(20));
 
         scroll.addView(body);
 
-        root.addView(scroll,
-                new LinearLayout.LayoutParams(-1, 0, 1));
+        root.addView(
+                scroll,
+                new LinearLayout.LayoutParams(-1, 0, 1)
+        );
+
+        // BOTTOM NAVIGATION
 
         LinearLayout nav = new LinearLayout(this);
-        nav.setBackgroundColor(Color.rgb(12, 15, 29));
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+        nav.setGravity(Gravity.CENTER);
+        nav.setBackgroundColor(Color.rgb(10, 13, 27));
+        nav.setPadding(dp(3), dp(4), dp(3), dp(4));
 
-        navButton(nav, tr("الرئيسية", "Home"), this::home);
-        navButton(nav, tr("التعلم", "Learn"), this::academy);
-        navButton(nav, tr("الأدوات", "Tools"), this::tools);
-        navButton(nav, tr("المختبر", "Labs"), this::labs);
-        navButton(nav, tr("المزيد", "More"), this::more);
+        navButton(nav, "⌂\n" + tr("الرئيسية", "Home"), this::home);
+        navButton(nav, "▤\n" + tr("التعلم", "Learn"), this::academy);
+        navButton(nav, "⚙\n" + tr("الأدوات", "Tools"), this::tools);
+        navButton(nav, "⌘\n" + tr("المختبر", "Labs"), this::labs);
+        navButton(nav, "⋮\n" + tr("المزيد", "More"), this::more);
 
-        root.addView(nav);
+        root.addView(
+                nav,
+                new LinearLayout.LayoutParams(-1, dp(62))
+        );
 
         setContentView(root);
     }
+
+    // NAV BUTTON
 
     private void navButton(
             LinearLayout nav,
             String title,
             Runnable action) {
 
-        Button b = new Button(this);
+        TextView b = new TextView(this);
         b.setText(title);
-        b.setTextSize(10);
-        b.setAllCaps(false);
+        b.setTextSize(11);
+        b.setGravity(Gravity.CENTER);
         b.setTextColor(CYAN);
+        b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         b.setBackgroundColor(Color.TRANSPARENT);
         b.setOnClickListener(v -> action.run());
 
-        nav.addView(b,
-                new LinearLayout.LayoutParams(0, dp(48), 1));
+        nav.addView(
+                b,
+                new LinearLayout.LayoutParams(0, -1, 1)
+        );
     }
+
+    // CARDS
 
     private void card(String title, String value, int accent) {
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(12), dp(10), dp(12), dp(10));
+        box.setPadding(dp(15), dp(13), dp(15), dp(13));
         box.setBackground(shape(PANEL, accent));
 
-        box.addView(label(title, 15, accent));
+        TextView heading = label(title, 15, accent);
+        heading.setGravity(Gravity.RIGHT);
 
-        TextView detail = label(value, 13, WHITE);
+        box.addView(heading);
+
+        TextView detail = label(value, 14, WHITE);
         detail.setTypeface(Typeface.DEFAULT);
+        detail.setGravity(Gravity.LEFT);
 
         box.addView(detail);
 
         LinearLayout.LayoutParams p =
                 new LinearLayout.LayoutParams(-1, -2);
 
-        p.setMargins(0, dp(6), 0, dp(6));
+        p.setMargins(0, dp(7), 0, dp(7));
 
         body.addView(box, p);
     }
+
+    // BUTTONS
 
     private void button(String title, Runnable action) {
 
@@ -258,13 +329,29 @@ public class MainActivity extends Activity {
         b.setTextColor(WHITE);
         b.setTextSize(14);
         b.setAllCaps(false);
-        b.setBackground(shape(Color.rgb(28, 23, 49), PURPLE));
-        b.setOnClickListener(v -> action.run());
+        b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        b.setBackground(gradient(
+                Color.rgb(29, 27, 52),
+                Color.rgb(20, 25, 47)
+        ));
+
+        b.setOnClickListener(v -> {
+            v.animate()
+                    .scaleX(0.97f)
+                    .scaleY(0.97f)
+                    .setDuration(80)
+                    .withEndAction(() -> {
+                        v.setScaleX(1f);
+                        v.setScaleY(1f);
+                        action.run();
+                    })
+                    .start();
+        });
 
         LinearLayout.LayoutParams p =
-                new LinearLayout.LayoutParams(-1, dp(52));
+                new LinearLayout.LayoutParams(-1, dp(58));
 
-        p.setMargins(0, dp(5), 0, dp(5));
+        p.setMargins(0, dp(6), 0, dp(6));
 
         body.addView(b, p);
     }
@@ -288,39 +375,80 @@ public class MainActivity extends Activity {
 
         page(tr("لوحة التحكم الرئيسية", "Main Dashboard"));
 
-        card("EMPEROR CYBER SECURITY",
-                tr("منصة تعليمية وأدوات دفاعية للأمن السيبراني",
-                   "Cybersecurity Learning & Defensive Platform"),
-                CYAN);
+        card(
+                "👑 EMPEROR CYBER SECURITY",
+                tr(
+                        "منصة تعليمية وأدوات دفاعية للأمن السيبراني",
+                        "Cybersecurity Learning & Defensive Platform"
+                ),
+                CYAN
+        );
 
-        card(tr("المجالات التعليمية", "Learning Domains"),
-                "17 Cybersecurity Domains", PINK);
+        // STATISTICS
 
-        card(tr("النقاط", "Learning Points"),
+        card(
+                "📚 " + tr("المجالات التعليمية", "Learning Domains"),
+                "17 Cybersecurity Domains",
+                PINK
+        );
+
+        card(
+                "🏆 " + tr("النقاط", "Learning Points"),
                 String.valueOf(prefs.getInt("points", 0)),
-                PURPLE);
+                PURPLE
+        );
 
-        card(tr("التقارير المحفوظة", "Saved Reports"),
+        card(
+                "📁 " + tr("التقارير المحفوظة", "Saved Reports"),
                 String.valueOf(ReportManager.getReportCount(this)),
-                CYAN);
+                CYAN
+        );
 
-        button(tr("أكاديمية الأمن السيبراني",
-                 "Cybersecurity Academy"), this::academy);
+        // MAIN SCAN CARD
 
-        button(tr("أدوات الحماية",
-                 "Security Tools"), this::tools);
+        card(
+                "🛡️ " + tr("مركز الحماية", "Security Center"),
+                tr(
+                        "افحص إعدادات أمان جهازك واعرض النتائج.",
+                        "Check your device security settings."
+                ),
+                CYAN
+        );
 
-        button(tr("مختبر التدريب",
-                 "Training Labs"), this::labs);
+        button(
+                "🔍 " + tr("بدء فحص أمان الجهاز", "Start Device Security Scan"),
+                this::scanDevice
+        );
 
-        button(tr("قاموس المصطلحات",
-                 "Security Glossary"), this::glossary);
+        button(
+                "🎓 " + tr("أكاديمية الأمن السيبراني", "Cybersecurity Academy"),
+                this::academy
+        );
 
-        button(tr("خطة الدراسة",
-                 "Study Roadmap"), this::roadmap);
+        button(
+                "🛡️ " + tr("أدوات الحماية", "Security Tools"),
+                this::tools
+        );
 
-        button(tr("معلومات الجهاز",
-         "Device Information"), this::scanDevice);
+        button(
+                "🧪 " + tr("مختبر التدريب", "Training Labs"),
+                this::labs
+        );
+
+        button(
+                "📖 " + tr("قاموس المصطلحات", "Security Glossary"),
+                this::glossary
+        );
+
+        button(
+                "🗺️ " + tr("خطة الدراسة", "Study Roadmap"),
+                this::roadmap
+        );
+
+        button(
+                "📱 " + tr("معلومات الجهاز", "Device Information"),
+                this::scanDevice
+        );
     }
 
     // ACADEMY
@@ -330,18 +458,23 @@ public class MainActivity extends Activity {
         page(tr("أكاديمية الأمن السيبراني",
                 "Cybersecurity Academy"));
 
-        card(tr("مسار التعلم",
-                "Learning Path"),
-                tr("ابدأ من الأساسيات ثم انتقل للمستوى المتقدم.",
-                   "Start with fundamentals and progress to advanced topics."),
-                CYAN);
+        card(
+                "🎓 " + tr("مسار التعلم", "Learning Path"),
+                tr(
+                        "ابدأ من الأساسيات ثم انتقل للمستوى المتقدم.",
+                        "Start with fundamentals and progress to advanced topics."
+                ),
+                CYAN
+        );
 
         for (int i = 0; i < courses.length; i++) {
 
             final int index = i;
 
-            button((i + 1) + " - " + courses[i],
-                    () -> lesson(index));
+            button(
+                    "📘 " + (i + 1) + " - " + courses[i],
+                    () -> lesson(index)
+            );
         }
     }
 
@@ -349,34 +482,51 @@ public class MainActivity extends Activity {
 
         page(courses[index]);
 
-        card(tr("الدرس الأول", "Lesson One"),
-                lessons[index][0], CYAN);
+        card(
+                tr("الدرس الأول", "Lesson One"),
+                lessons[index][0],
+                CYAN
+        );
 
-        card(tr("الدرس الثاني", "Lesson Two"),
-                lessons[index][1], PINK);
+        card(
+                tr("الدرس الثاني", "Lesson Two"),
+                lessons[index][1],
+                PINK
+        );
 
-        card(tr("تطبيق عملي", "Practical Exercise"),
-                practical(index), PURPLE);
+        card(
+                tr("تطبيق عملي", "Practical Exercise"),
+                practical(index),
+                PURPLE
+        );
 
-        button(tr("تسجيل إكمال الدرس +10 نقاط",
-                 "Complete Lesson +10 Points"), () -> {
+        button(
+                "🏆 " + tr("تسجيل إكمال الدرس +10 نقاط",
+                           "Complete Lesson +10 Points"),
+                () -> {
 
-            String key = "completed_" + index;
+                    String key = "completed_" + index;
 
-            if (!prefs.getBoolean(key, false)) {
+                    if (!prefs.getBoolean(key, false)) {
 
-                prefs.edit()
-                        .putBoolean(key, true)
-                        .putInt("points",
-                                prefs.getInt("points", 0) + 10)
-                        .apply();
-            }
+                        prefs.edit()
+                                .putBoolean(key, true)
+                                .putInt(
+                                        "points",
+                                        prefs.getInt("points", 0) + 10
+                                )
+                                .apply();
+                    }
 
-            toast(tr("تم حفظ تقدمك", "Progress saved"));
-            academy();
-        });
+                    toast(tr("تم حفظ تقدمك", "Progress saved"));
+                    academy();
+                }
+        );
 
-        button(tr("اختبار قصير", "Quick Quiz"), this::quiz);
+        button(
+                "📝 " + tr("اختبار قصير", "Quick Quiz"),
+                this::quiz
+        );
     }
 
     private String practical(int i) {
@@ -410,9 +560,14 @@ public class MainActivity extends Activity {
 
         page(tr("اختبار المعرفة", "Knowledge Quiz"));
 
-        card(tr("السؤال", "Question"),
-                tr("ما وظيفة SHA-256؟",
-                   "What does SHA-256 do?"), CYAN);
+        card(
+                tr("السؤال", "Question"),
+                tr(
+                        "ما وظيفة SHA-256؟",
+                        "What does SHA-256 do?"
+                ),
+                CYAN
+        );
 
         button("A - Hashing", () -> quizAnswer(true));
         button("B - Network Routing", () -> quizAnswer(false));
@@ -422,19 +577,26 @@ public class MainActivity extends Activity {
     private void quizAnswer(boolean correct) {
 
         if (correct) {
+
             prefs.edit()
-                    .putInt("points",
-                            prefs.getInt("points", 0) + 5)
+                    .putInt(
+                            "points",
+                            prefs.getInt("points", 0) + 5
+                    )
                     .apply();
         }
 
         new AlertDialog.Builder(this)
-                .setTitle(correct
-                        ? tr("إجابة صحيحة", "Correct")
-                        : tr("إجابة خاطئة", "Incorrect"))
-                .setMessage(correct
-                        ? "SHA-256 is a cryptographic hash function."
-                        : tr("راجع درس التشفير.", "Review Cryptography."))
+                .setTitle(
+                        correct
+                                ? tr("إجابة صحيحة", "Correct")
+                                : tr("إجابة خاطئة", "Incorrect")
+                )
+                .setMessage(
+                        correct
+                                ? "SHA-256 is a cryptographic hash function."
+                                : tr("راجع درس التشفير.", "Review Cryptography.")
+                )
                 .setPositiveButton("OK", (d, w) -> quiz())
                 .show();
     }
@@ -445,34 +607,54 @@ public class MainActivity extends Activity {
 
         page(tr("الأدوات الدفاعية", "Defensive Tools"));
 
-        card(tr("تنبيه أمني", "Security Notice"),
-                tr("الأدوات محلية وتعليمية وليست مضاد فيروسات شاملًا.",
-                   "Local educational tools, not a full antivirus."),
-                PINK);
+        card(
+                "⚠️ " + tr("تنبيه أمني", "Security Notice"),
+                tr(
+                        "الأدوات محلية وتعليمية وليست مضاد فيروسات شاملًا.",
+                        "Local educational tools, not a full antivirus."
+                ),
+                PINK
+        );
 
-        button(tr("فحص أمان الجهاز", "Device Security Scan"),
-                this::scanDevice);
+        button(
+                "🛡️ " + tr("فحص أمان الجهاز", "Device Security Scan"),
+                this::scanDevice
+        );
 
-        button(tr("فحص معلومات الشبكة", "Network Information"),
-                this::scanNetwork);
+        button(
+                "🌐 " + tr("فحص معلومات الشبكة", "Network Information"),
+                this::scanNetwork
+        );
 
-        button(tr("تشفير وفك تشفير النصوص", "AES Encryption"),
-                this::encryptionMenu);
+        button(
+                "🔐 " + tr("تشفير وفك تشفير النصوص", "AES Encryption"),
+                this::encryptionMenu
+        );
 
-        button(tr("حساب SHA-256 للنص", "Text SHA-256"),
-                this::hashText);
+        button(
+                "🔑 " + tr("حساب SHA-256 للنص", "Text SHA-256"),
+                this::hashText
+        );
 
-        button(tr("حساب SHA-256 للملف", "File SHA-256"),
-                this::pickFile);
+        button(
+                "📄 " + tr("حساب SHA-256 للملف", "File SHA-256"),
+                this::pickFile
+        );
 
-        button(tr("تقييم قوة كلمة المرور", "Password Analyzer"),
-                this::password);
+        button(
+                "🔒 " + tr("تقييم قوة كلمة المرور", "Password Analyzer"),
+                this::password
+        );
 
-        button(tr("حفظ تقرير الفحص", "Save Scan Report"),
-                this::saveScanReport);
+        button(
+                "💾 " + tr("حفظ تقرير الفحص", "Save Scan Report"),
+                this::saveScanReport
+        );
 
-        button(tr("عرض التقارير المحفوظة", "Saved Reports"),
-                this::showReports);
+        button(
+                "📁 " + tr("عرض التقارير المحفوظة", "Saved Reports"),
+                this::showReports
+        );
     }
 
     // DEVICE SCAN
@@ -492,9 +674,11 @@ public class MainActivity extends Activity {
 
             for (SecurityScanner.ScanResult result : results) {
 
-                card(result.title,
+                card(
+                        result.title,
                         result.status + "\n" + result.details,
-                        result.warning ? PINK : CYAN);
+                        result.warning ? PINK : CYAN
+                );
 
                 report.append(result.title)
                         .append(": ")
@@ -503,19 +687,26 @@ public class MainActivity extends Activity {
                         .append(result.details)
                         .append("\n\n");
 
-                if (result.warning) warnings++;
+                if (result.warning) {
+                    warnings++;
+                }
             }
 
             currentReport = report.toString();
 
-            card(tr("النتيجة", "Result"),
+            card(
+                    tr("النتيجة", "Result"),
                     tr("عدد التنبيهات: ", "Warnings: ") + warnings,
-                    warnings > 0 ? PINK : CYAN);
+                    warnings > 0 ? PINK : CYAN
+            );
 
-            button(tr("حفظ تقرير الفحص", "Save Scan Report"),
-                    this::saveScanReport);
+            button(
+                    "💾 " + tr("حفظ تقرير الفحص", "Save Scan Report"),
+                    this::saveScanReport
+            );
 
         } catch (Exception e) {
+
             toast("Scan Error: " + e.getMessage());
         }
     }
@@ -545,10 +736,13 @@ public class MainActivity extends Activity {
 
             currentReport = report.toString();
 
-            button(tr("حفظ تقرير الشبكة", "Save Network Report"),
-                    this::saveScanReport);
+            button(
+                    "💾 " + tr("حفظ تقرير الشبكة", "Save Network Report"),
+                    this::saveScanReport
+            );
 
         } catch (Exception e) {
+
             toast("Network Error: " + e.getMessage());
         }
     }
@@ -559,19 +753,29 @@ public class MainActivity extends Activity {
 
         page(tr("التشفير AES-256", "AES-256 Encryption"));
 
-        card(tr("التشفير المحلي", "Local Encryption"),
-                tr("التشفير يتم على جهازك باستخدام AES-GCM.",
-                   "Encryption runs locally using AES-GCM."),
-                CYAN);
+        card(
+                "🔐 " + tr("التشفير المحلي", "Local Encryption"),
+                tr(
+                        "التشفير يتم على جهازك باستخدام AES-GCM.",
+                        "Encryption runs locally using AES-GCM."
+                ),
+                CYAN
+        );
 
-        button(tr("إنشاء مفتاح جديد", "Generate New Key"),
-                this::generateEncryptionKey);
+        button(
+                tr("إنشاء مفتاح جديد", "Generate New Key"),
+                this::generateEncryptionKey
+        );
 
-        button(tr("تشفير نص", "Encrypt Text"),
-                this::encryptText);
+        button(
+                tr("تشفير نص", "Encrypt Text"),
+                this::encryptText
+        );
 
-        button(tr("فك تشفير نص", "Decrypt Text"),
-                this::decryptText);
+        button(
+                tr("فك تشفير نص", "Decrypt Text"),
+                this::decryptText
+        );
     }
 
     private void generateEncryptionKey() {
@@ -599,6 +803,7 @@ public class MainActivity extends Activity {
                     .show();
 
         } catch (Exception e) {
+
             toast("Key Error: " + e.getMessage());
         }
     }
@@ -608,6 +813,7 @@ public class MainActivity extends Activity {
         String key = prefs.getString("aes_key", null);
 
         if (key == null) {
+
             toast(tr("أنشئ مفتاحًا أولًا", "Generate a key first"));
             return;
         }
@@ -618,17 +824,21 @@ public class MainActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle(tr("تشفير نص", "Encrypt Text"))
                 .setView(input)
-                .setPositiveButton(tr("تشفير", "Encrypt"),
+                .setPositiveButton(
+                        tr("تشفير", "Encrypt"),
                         (d, w) -> {
 
                     try {
 
                         String encrypted = EncryptionManager.encrypt(
-                                input.getText().toString(), key);
+                                input.getText().toString(),
+                                key
+                        );
 
                         showResult("Encrypted Text", encrypted);
 
                     } catch (Exception e) {
+
                         toast("Encryption Error");
                     }
                 })
@@ -641,6 +851,7 @@ public class MainActivity extends Activity {
         String key = prefs.getString("aes_key", null);
 
         if (key == null) {
+
             toast(tr("أنشئ مفتاحًا أولًا", "Generate a key first"));
             return;
         }
@@ -651,19 +862,25 @@ public class MainActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle(tr("فك التشفير", "Decrypt Text"))
                 .setView(input)
-                .setPositiveButton(tr("فك التشفير", "Decrypt"),
+                .setPositiveButton(
+                        tr("فك التشفير", "Decrypt"),
                         (d, w) -> {
 
                     try {
 
                         String decrypted = EncryptionManager.decrypt(
-                                input.getText().toString(), key);
+                                input.getText().toString(),
+                                key
+                        );
 
                         showResult("Decrypted Text", decrypted);
 
                     } catch (Exception e) {
-                        toast(tr("فشل فك التشفير أو المفتاح غير صحيح",
-                                "Decryption failed or incorrect key"));
+
+                        toast(tr(
+                                "فشل فك التشفير أو المفتاح غير صحيح",
+                                "Decryption failed or incorrect key"
+                        ));
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -681,21 +898,27 @@ public class MainActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle("SHA-256")
                 .setView(input)
-                .setPositiveButton(tr("احسب", "Calculate"),
+                .setPositiveButton(
+                        tr("احسب", "Calculate"),
                         (d, w) -> {
 
                     try {
 
                         String result = HashManager.hashText(
-                                input.getText().toString());
+                                input.getText().toString()
+                        );
 
                         showResult("SHA-256", result);
 
                     } catch (Exception e) {
+
                         toast("Hash Error");
                     }
                 })
-                .setNegativeButton(tr("إلغاء", "Cancel"), null)
+                .setNegativeButton(
+                        tr("إلغاء", "Cancel"),
+                        null
+                )
                 .show();
     }
 
@@ -740,8 +963,12 @@ public class MainActivity extends Activity {
                 StringBuilder result = new StringBuilder();
 
                 for (byte b : md.digest()) {
-                    result.append(String.format(Locale.US,
-                            "%02x", b & 255));
+
+                    result.append(String.format(
+                            Locale.US,
+                            "%02x",
+                            b & 255
+                    ));
                 }
 
                 currentReport = "File SHA-256:\n" + result;
@@ -749,6 +976,7 @@ public class MainActivity extends Activity {
                 showResult("File SHA-256", result.toString());
 
             } catch (Exception e) {
+
                 toast(tr("تعذر قراءة الملف", "Could not read file"));
             }
         }
@@ -760,36 +988,53 @@ public class MainActivity extends Activity {
 
         page(tr("تحليل قوة كلمة المرور", "Password Analyzer"));
 
-        card(tr("تنبيه الخصوصية", "Privacy Notice"),
-                tr("استخدم كلمة تجريبية فقط، ولا تدخل كلمة مرورك الحقيقية.",
-                   "Use a sample password only. Never enter your real password."),
-                PINK);
+        card(
+                tr("تنبيه الخصوصية", "Privacy Notice"),
+                tr(
+                        "استخدم كلمة تجريبية فقط، ولا تدخل كلمة مرورك الحقيقية.",
+                        "Use a sample password only. Never enter your real password."
+                ),
+                PINK
+        );
 
         EditText input = new EditText(this);
         input.setSingleLine(true);
 
         input.setInputType(
                 InputType.TYPE_CLASS_TEXT |
-                InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                InputType.TYPE_TEXT_VARIATION_PASSWORD
+        );
 
         input.setHint(tr("كلمة مرور تجريبية", "Sample password"));
 
         body.addView(input);
 
-        button(tr("تحليل القوة", "Analyze Strength"), () -> {
+        button(
+                tr("تحليل القوة", "Analyze Strength"),
+                () -> {
 
             PasswordAnalyzer.Result result =
                     PasswordAnalyzer.analyze(
-                            input.getText().toString());
+                            input.getText().toString()
+                    );
 
-            card(tr("النتيجة", "Result"),
-                    result.level, CYAN);
+            card(
+                    tr("النتيجة", "Result"),
+                    result.level,
+                    CYAN
+            );
 
-            card(tr("النقاط", "Score"),
-                    result.score + " / 100", PINK);
+            card(
+                    tr("النقاط", "Score"),
+                    result.score + " / 100",
+                    PINK
+            );
 
-            card(tr("النصيحة", "Advice"),
-                    result.advice, PURPLE);
+            card(
+                    tr("النصيحة", "Advice"),
+                    result.advice,
+                    PURPLE
+            );
 
             currentReport =
                     "Password Analysis\n" +
@@ -803,7 +1048,9 @@ public class MainActivity extends Activity {
 
     private void saveScanReport() {
 
-        if (currentReport == null || currentReport.trim().isEmpty()) {
+        if (currentReport == null ||
+                currentReport.trim().isEmpty()) {
+
             toast(tr("لا توجد نتائج للحفظ", "No results to save"));
             return;
         }
@@ -816,10 +1063,13 @@ public class MainActivity extends Activity {
                     currentReport
             );
 
-            toast(tr("تم حفظ التقرير: ", "Report saved: ")
-                    + file.getName());
+            toast(
+                    tr("تم حفظ التقرير: ", "Report saved: ") +
+                    file.getName()
+            );
 
         } catch (Exception e) {
+
             toast("Report Error: " + e.getMessage());
         }
     }
@@ -828,20 +1078,28 @@ public class MainActivity extends Activity {
 
         page(tr("التقارير المحفوظة", "Saved Reports"));
 
-        File directory = ReportManager.getReportsDirectory(this);
+        File directory =
+                ReportManager.getReportsDirectory(this);
 
         File[] files = directory.listFiles();
 
         if (files == null || files.length == 0) {
-            card(tr("التقارير", "Reports"),
+
+            card(
+                    tr("التقارير", "Reports"),
                     tr("لا توجد تقارير محفوظة.", "No saved reports."),
-                    PINK);
+                    PINK
+            );
+
             return;
         }
 
         for (File file : files) {
 
-            button(file.getName(), () -> openReport(file));
+            button(
+                    "📄 " + file.getName(),
+                    () -> openReport(file)
+            );
         }
     }
 
@@ -854,11 +1112,14 @@ public class MainActivity extends Activity {
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(
                             new FileInputStream(file),
-                            "UTF-8"));
+                            "UTF-8"
+                    )
+            );
 
             String line;
 
             while ((line = reader.readLine()) != null) {
+
                 content.append(line).append("\n");
             }
 
@@ -867,6 +1128,7 @@ public class MainActivity extends Activity {
             showResult(file.getName(), content.toString());
 
         } catch (Exception e) {
+
             toast("Could not open report");
         }
     }
@@ -884,12 +1146,15 @@ public class MainActivity extends Activity {
 
             for (SecurityScanner.ScanResult result : results) {
 
-                card(result.title,
+                card(
+                        result.title,
                         result.status + "\n" + result.details,
-                        result.warning ? PINK : CYAN);
+                        result.warning ? PINK : CYAN
+                );
             }
 
         } catch (Exception e) {
+
             toast("Security Error");
         }
     }
@@ -900,30 +1165,52 @@ public class MainActivity extends Activity {
 
         page(tr("المختبر الأمني", "Security Training Labs"));
 
-        card(tr("بيئة تدريب آمنة", "Safe Training Environment"),
-                tr("اختبر فقط الأنظمة التي تملكها أو لديك تصريح لاختبارها.",
-                   "Test only systems you own or are authorized to assess."),
-                CYAN);
+        card(
+                "🧪 " + tr("بيئة تدريب آمنة", "Safe Training Environment"),
+                tr(
+                        "اختبر فقط الأنظمة التي تملكها أو لديك تصريح لاختبارها.",
+                        "Test only systems you own or are authorized to assess."
+                ),
+                CYAN
+        );
 
-        button(tr("تحدي التصيد الإلكتروني", "Phishing Challenge"),
+        button(
+                tr("تحدي التصيد الإلكتروني", "Phishing Challenge"),
                 () -> challenge(
                         "Phishing",
-                        tr("لا تشارك رمز OTP مع أي شخص.",
-                           "Never share an OTP with anyone.")));
+                        tr(
+                                "لا تشارك رمز OTP مع أي شخص.",
+                                "Never share an OTP with anyone."
+                        )
+                )
+        );
 
-        button(tr("تحدي سلامة الملفات", "File Integrity Challenge"),
+        button(
+                tr("تحدي سلامة الملفات", "File Integrity Challenge"),
                 () -> challenge(
                         "File Integrity",
-                        tr("قارن بصمة الملف بمصدر موثوق قبل تشغيله.",
-                           "Compare the file hash with a trusted source.")));
+                        tr(
+                                "قارن بصمة الملف بمصدر موثوق قبل تشغيله.",
+                                "Compare the file hash with a trusted source."
+                        )
+                )
+        );
 
-        button(tr("تحدي الصلاحيات", "Permissions Challenge"),
+        button(
+                tr("تحدي الصلاحيات", "Permissions Challenge"),
                 () -> challenge(
                         "Permissions",
-                        tr("ارفض الصلاحيات التي لا يحتاجها التطبيق.",
-                           "Deny permissions that an app does not need.")));
+                        tr(
+                                "ارفض الصلاحيات التي لا يحتاجها التطبيق.",
+                                "Deny permissions that an app does not need."
+                        )
+                )
+        );
 
-        button(tr("اختبار المعلومات", "Knowledge Quiz"), this::quiz);
+        button(
+                tr("اختبار المعلومات", "Knowledge Quiz"),
+                this::quiz
+        );
     }
 
     private void challenge(String title, String answer) {
@@ -938,6 +1225,7 @@ public class MainActivity extends Activity {
         page(tr("قاموس الأمن السيبراني", "Cybersecurity Glossary"));
 
         for (String term : glossary) {
+
             card("CYBER TERM", term, CYAN);
         }
     }
@@ -962,8 +1250,12 @@ public class MainActivity extends Activity {
         };
 
         for (String phase : phases) {
-            card(tr("مرحلة تعليمية", "Learning Phase"),
-                    phase, PURPLE);
+
+            card(
+                    tr("مرحلة تعليمية", "Learning Phase"),
+                    phase,
+                    PURPLE
+            );
         }
     }
 
@@ -973,16 +1265,30 @@ public class MainActivity extends Activity {
 
         page(tr("المزيد", "More"));
 
-        button(tr("قاموس المصطلحات", "Glossary"), this::glossary);
+        button(
+                tr("قاموس المصطلحات", "Glossary"),
+                this::glossary
+        );
 
-        button(tr("خطة الدراسة", "Study Roadmap"), this::roadmap);
+        button(
+                tr("خطة الدراسة", "Study Roadmap"),
+                this::roadmap
+        );
 
-        button(tr("حماية Android", "Android Security"),
-                this::androidSecurity);
+        button(
+                tr("حماية Android", "Android Security"),
+                this::androidSecurity
+        );
 
-        button(tr("التقارير", "Reports"), this::showReports);
+        button(
+                tr("التقارير", "Reports"),
+                this::showReports
+        );
 
-        button(tr("الإعدادات", "Settings"), this::settings);
+        button(
+                tr("الإعدادات", "Settings"),
+                this::settings
+        );
     }
 
     // SETTINGS
@@ -991,27 +1297,39 @@ public class MainActivity extends Activity {
 
         page(tr("الإعدادات", "Settings"));
 
-        card(tr("اللغة الحالية", "Current Language"),
+        card(
+                tr("اللغة الحالية", "Current Language"),
                 english ? "English" : "العربية",
-                CYAN);
+                CYAN
+        );
 
-        button(tr("تغيير اللغة", "Change Language"), () -> {
+        button(
+                tr("تغيير اللغة", "Change Language"),
+                () -> {
 
-            english = !english;
+                    english = !english;
 
-            prefs.edit()
-                    .putBoolean("english", english)
-                    .apply();
+                    prefs.edit()
+                            .putBoolean("english", english)
+                            .apply();
 
-            home();
-        });
+                    home();
+                }
+        );
 
-        card(tr("الإصدار", "Version"),
-                "4.0 OFFLINE", PINK);
+        card(
+                tr("الإصدار", "Version"),
+                "4.0 OFFLINE",
+                PINK
+        );
 
-        card(tr("الخصوصية", "Privacy"),
-                tr("الأدوات تعمل محليًا ولا ترفع بياناتك إلى سيرفر خارجي.",
-                   "Tools work locally and do not upload data to an external server."),
-                PURPLE);
+        card(
+                tr("الخصوصية", "Privacy"),
+                tr(
+                        "الأدوات تعمل محليًا ولا ترفع بياناتك إلى سيرفر خارجي.",
+                        "Tools work locally and do not upload data to an external server."
+                ),
+                PURPLE
+        );
     }
     }
