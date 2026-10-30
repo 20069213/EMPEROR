@@ -138,13 +138,23 @@ public class MainActivity extends Activity {
     };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
 
-        prefs = getSharedPreferences("emperor", MODE_PRIVATE);
-        english = prefs.getBoolean("english", false);
+    prefs = getSharedPreferences("emperor", MODE_PRIVATE);
+    english = prefs.getBoolean("english", false);
 
-        home();
+    // تشغيل الموسيقى تلقائيًا
+    Intent musicIntent = new Intent(this, EmperorMusicService.class);
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        startForegroundService(musicIntent);
+    } else {
+        startService(musicIntent);
+    }
+
+    home();
+}
     }
 
     private String tr(String ar, String en) {
